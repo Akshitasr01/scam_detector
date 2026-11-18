@@ -21,6 +21,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.constants import ParseMode
+from telegram.error import NetworkError, TimedOut
 from telegram.ext import (
     ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters,
 )
@@ -308,6 +309,11 @@ async def on_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if isinstance(context.error, (NetworkError, TimedOut)) and not isinstance(update, Update):
+        # polling connection dropped — python-telegram-bot reconnects automatically
+        log.warning("Network hiccup talking to Telegram (%s) — retrying automatically.",
+                    context.error.__class__.__name__)
+        return
     log.error("Handler error", exc_info=context.error)
     if isinstance(update, Update) and update.effective_message:
         try:
