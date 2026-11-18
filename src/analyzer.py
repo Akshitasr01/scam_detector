@@ -313,7 +313,9 @@ async def analyze_text_async(text: str, resolve_links: bool = True) -> dict:
             warnings.append(f"Shortened link {l['original']} could not be resolved ({l['resolve_error']}) — destination hidden")
         if l["lookalike_of"]:
             hard_signal = True
-            warnings.append(f"Lookalike domain {l['final_domain']} imitates {l['lookalike_of']} (similarity {l['similarity']:.2f})")
+            how = (f"similarity {l['similarity']:.2f}" if l["similarity"] >= LOOKALIKE_THRESHOLD
+                   else "uses the brand name on a non-official domain")
+            warnings.append(f"Lookalike domain {l['final_domain']} imitates {l['lookalike_of']} ({how})")
         if l["is_apk"]:
             hard_signal = True
             warnings.append(f"APK payload link: {l['final_url']}")
