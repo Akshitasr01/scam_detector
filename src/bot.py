@@ -325,7 +325,13 @@ def build_app():
         )
     if ":" not in token:
         raise SystemExit("TELEGRAM_BOT_TOKEN looks wrong — it should look like 123456789:AAH... (check .env).")
-    app = ApplicationBuilder().token(token).build()
+    app = (
+        ApplicationBuilder().token(token)
+        # generous timeouts for slow / flaky networks (polling auto-retries on drops)
+        .connect_timeout(20).read_timeout(30).write_timeout(30).pool_timeout(10)
+        .get_updates_connect_timeout(20).get_updates_read_timeout(40)
+        .build()
+    )
     app.add_handler(CommandHandler(["start", "help"], start))
     app.add_handler(MessageHandler(filters.PHOTO | filters.Document.IMAGE, on_photo))
     app.add_handler(MessageHandler(filters.VOICE | filters.AUDIO, on_voice))
