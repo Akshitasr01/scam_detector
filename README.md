@@ -88,7 +88,7 @@ Everything runs locally on CPU. No paid APIs, no Tesseract/ffmpeg, no database: 
 
 1. `pip install -r requirements.txt`
 2. Create a bot with [@BotFather](https://t.me/BotFather) (`/newbot`) and copy the token.
-3. Create `.env` in the project root (it is git-ignored):
+3. Copy `.env.example` to `.env` in the project root (it is git-ignored) and replace the placeholder with your token:
    ```
    TELEGRAM_BOT_TOKEN=123456789:AAH...
    ```

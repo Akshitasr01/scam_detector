@@ -317,9 +317,14 @@ async def on_error(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 def build_app():
-    token = os.getenv("TELEGRAM_BOT_TOKEN")
-    if not token:
-        raise SystemExit("TELEGRAM_BOT_TOKEN is not set. Add it to .env in the project root (see README).")
+    token = (os.getenv("TELEGRAM_BOT_TOKEN") or "").strip()
+    if not token or token == "paste-your-bot-token-here":
+        raise SystemExit(
+            f"TELEGRAM_BOT_TOKEN is not set. Open {ROOT / '.env'} and replace "
+            "'paste-your-bot-token-here' with the token from @BotFather."
+        )
+    if ":" not in token:
+        raise SystemExit("TELEGRAM_BOT_TOKEN looks wrong — it should look like 123456789:AAH... (check .env).")
     app = ApplicationBuilder().token(token).build()
     app.add_handler(CommandHandler(["start", "help"], start))
     app.add_handler(MessageHandler(filters.PHOTO | filters.Document.IMAGE, on_photo))
