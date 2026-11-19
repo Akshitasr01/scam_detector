@@ -57,6 +57,51 @@ python train.py
 
 The fine-tuned model is saved to `models/scam_detector/`, which `predict.py` and `app.py` load automatically.
 
+## Model comparison: SVM vs DistilBERT
+
+`src/train_svm.py` trains a classic TF-IDF + Linear SVM baseline and scores it against the fine-tuned DistilBERT on the **same** 80/20 stratified split (seed 42) used by `train.py`.
+
+### What to expect
+
+Dataset: `combined_dataset.csv` with 8,521 messages (6,477 ham / 2,044 spam).
+
+| | TF-IDF + Linear SVM | DistilBERT |
+|---|---|---|
+| Accuracy on SMS-style spam | Typically ~97–98% | Typically ~98–99% |
+| Training time | Seconds, CPU | Minutes–hours |
+| Inference per message | ~1 ms | ~50–100 ms on CPU |
+| Model size | ~1–5 MB | ~260 MB |
+| Reworded / unseen scams | Weaker (keyword-based) | Stronger (understands context) |
+| Confidence % | Needs calibration (`CalibratedClassifierCV`) | Native (softmax) |
+| Explainability | Direct word weights | SHAP |
+
+### Tested results
+
+Test set: 1,705 messages (1,296 safe, 409 scam). Scam is the positive class.
+
+| Metric | TF-IDF + Linear SVM | DistilBERT | Winner |
+|---|---:|---:|:---:|
+| Accuracy | 97.65% | **99.30%** | DistilBERT |
+| Precision | 96.71% | **98.06%** | DistilBERT |
+| Recall | 93.40% | **99.02%** | DistilBERT |
+| F1 score | 95.02% | **98.54%** | DistilBERT |
+| Missed scams (false negatives) | 27 | **4** | DistilBERT |
+| False alarms (false positives) | 13 | **8** | DistilBERT |
+| Inference per message (CPU) | **1.6 ms** | 53.7 ms | SVM |
+| Training time | **13 s** | ~hours on CPU | SVM |
+
+**Verdict:** DistilBERT stays the production model. It misses about 7× fewer scams (4 vs 27), and a missed scam costs far more than a false alarm. The SVM is about 33× faster, so it is useful as a fast pre-filter or as a fallback where no GPU and little memory are available, not as a replacement.
+
+Re-run the comparison:
+
+```powershell
+cd c:\Projects\scam_detector\src
+python train_svm.py              # train SVM + compare with DistilBERT
+python train_svm.py --skip-bert  # SVM only (seconds)
+```
+
+The SVM pipeline (word 1–2 grams + character 3–5 grams, calibrated LinearSVC) is saved to `models/scam_detector_svm/model.joblib`.
+
 ## Telegram Security Guard
 
 A Telegram bot that checks forwarded messages, screenshots and voice notes for Indian scam patterns (bank KYC, UPI collect, e-challan APKs, fake jobs) and helps the user respond and report.
@@ -145,9 +190,11 @@ scam_detector/
 │   ├── bot.py         # Telegram Security Guard
 │   ├── test_suite.py  # Offline analyzer scenarios
 │   ├── train.py       # Model training
+│   ├── train_svm.py   # TF-IDF + SVM baseline and comparison with DistilBERT
 │   └── explain.py     # SHAP explainability (optional)
 ├── models/
-│   └── scam_detector/   # Saved model artifacts (not in git)
+│   ├── scam_detector/      # Saved DistilBERT artifacts (not in git)
+│   └── scam_detector_svm/  # Saved SVM pipeline (not in git)
 └── combined_dataset.csv # Training data (not in git)
 ```
 
